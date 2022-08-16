@@ -99,26 +99,31 @@ public class RealmRoleInitializer
    */
   private static void setupRealmAccess(KeycloakSession session)
   {
-    Stream<RealmModel> realms = session.realms().getRealmsStream();
-    RealmManager manager = new RealmManager(session);
-    realms.forEach(realm -> {
-      ClientModel client = realm.getMasterAdminClient();
-      if (client.getRole(SCIM_ADMIN_ROLE) == null)
-      {
-        log.info("configuring realm {} for SCIM", realm.getName());
-        addMasterAdminRoles(manager, realm);
-      }
-
-      if (!realm.getName().equals(Config.getAdminRealm()))
-      {
-        client = realm.getClientByClientId(manager.getRealmAdminClientId(realm));
-        if (client.getRole(SCIM_ADMIN_ROLE) == null)
-        {
+    try {
+      Stream<RealmModel> realms = session.realms().getRealmsStream();
+      RealmManager manager = new RealmManager(session);
+      realms.forEach(realm -> {
+        ClientModel client = realm.getMasterAdminClient();
+        if (client.getRole(SCIM_ADMIN_ROLE) == null) {
           log.info("configuring realm {} for SCIM", realm.getName());
-          addRealmAdminRoles(manager, realm);
+          addMasterAdminRoles(manager, realm);
         }
+
+        if (!realm.getName().equals(Config.getAdminRealm())) {
+          client = realm.getClientByClientId(manager.getRealmAdminClientId(realm));
+          if (client.getRole(SCIM_ADMIN_ROLE) == null) {
+            log.info("configuring realm {} for SCIM", realm.getName());
+            addRealmAdminRoles(manager, realm);
+          }
+        }
+      });
+    }catch (NullPointerException exception){
+      try {
+        Thread.sleep(1000);
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
       }
-    });
+    }
   }
 
   /**
